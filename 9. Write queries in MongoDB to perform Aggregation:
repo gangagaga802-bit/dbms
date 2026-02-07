@@ -1,0 +1,43 @@
+
+db.createCollection("reviews");
+
+// Insert documents
+db.reviews.insertMany([
+  { reviewId: 1, productId: 101, productName: "Headphones", rating: 4 },
+  { reviewId: 2, productId: 101, productName: "Headphones", rating: 5 },
+  { reviewId: 3, productId: 102, productName: "Keyboard", rating: 3 },
+  { reviewId: 4, productId: 102, productName: "Keyboard", rating: 4 },
+  { reviewId: 5, productId: 103, productName: "Mouse", rating: 5 }
+]);
+
+// Aggregate: Average rating per product
+db.reviews.aggregate([
+  {
+    $group: {
+      _id: "$productName",
+      averageRating: { $avg: "$rating" }
+    }
+  }
+]);
+
+// Display all reviews
+db.reviews.find();
+
+// Create collection
+db.createCollection("posts_comments");
+
+// Insert documents
+db.posts_comments.insertMany([
+  { postId: 1, title: "MongoDB Basics", comments: 15 },
+  { postId: 2, title: "CRUD Operations", comments: 25 },
+  { postId: 3, title: "Aggregation", comments: 10 },
+  { postId: 4, title: "Indexing", comments: 30 },
+  { postId: 5, title: "Sharding", comments: 20 },
+  { postId: 6, title: "Replication", comments: 18 }
+]);
+
+// Aggregate: Top 5 posts by comment count
+db.posts_comments.aggregate([
+  { $sort: { comments: -1 } },
+  { $limit: 5 }
+]);
