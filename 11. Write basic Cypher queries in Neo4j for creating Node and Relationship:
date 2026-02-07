@@ -1,0 +1,15 @@
+CREATE (u1:User {name:'Alice', email:'alice@gmail.com'})
+CREATE (u2:User {name:'Bob', email:'bob@gmail.com'})
+MATCH (a:User {name:'Alice'}), (b:User {name:'Bob'})
+CREATE (a)-[:FRIEND_OF]->(b)
+CREATE (c1:City {name:'Chennai', population:7000000})
+CREATE (c2:City {name:'Coimbatore', population:1500000})
+MATCH (u:User {name:'Alice'}), (c:City {name:'Chennai'})
+CREATE (u)-[:LIVES_IN]->(c)
+MATCH (u:User {name:'Bob'}), (c:City {name:'Coimbatore'})
+CREATE (u)-[:LIVES_IN]->(c)
+MATCH (n) RETURN n
+MATCH (a)-[r]->(b) RETURN a,r,b
+
+NOTE: To delete all duplicate tables that are created
+“ MATCH (n) DETACH DELETE n “
