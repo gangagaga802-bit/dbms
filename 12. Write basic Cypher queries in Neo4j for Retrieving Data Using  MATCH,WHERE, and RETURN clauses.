@@ -1,0 +1,9 @@
+Continution of 11th prgrm
+
+MATCH (u:User)
+RETURN u.name AS Name, u.email AS Email
+MATCH (u1:User)-[:FRIEND_OF]->(u2:User)
+RETURN u1.name AS User1, u2.name AS Friend
+MATCH (u:User)-[:LIVES_IN]->(c:City)
+WHERE c.name = 'Chennai'
+RETURN u.name AS UserName
