@@ -1,0 +1,47 @@
+1) Create ADDRESS object type
+CREATE TYPE address_type AS OBJECT (
+  street VARCHAR2(30),
+  city   VARCHAR2(20),
+  state  VARCHAR2(20)
+);
+
+2) Create EMPLOYEE table using object type
+CREATE TABLE employee (
+  emp_id   NUMBER,
+  emp_name VARCHAR2(20),
+  addr     address_type
+);
+
+3) Insert values into EMPLOYEE table
+INSERT INTO employee VALUES (
+  1,
+  'Ravi',
+  address_type('MG Road', 'Chennai', 'Tamil Nadu')
+);
+
+INSERT INTO employee VALUES (
+  2,
+  'Anu',
+  address_type('Park Street', 'Bangalore', 'Karnataka')
+);
+
+4) Display EMPLOYEE table
+SELECT e.emp_id,
+       e.emp_name,
+       e.addr.street AS street,
+       e.addr.city   AS city,
+       e.addr.state  AS state
+FROM employee e;
+
+5) Update address of an employee
+UPDATE employee
+SET addr = address_type('Anna Nagar', 'Chennai', 'Tamil Nadu')
+WHERE emp_id = 1;
+
+6) Display EMPLOYEE table after update
+SELECT e.emp_id,
+       e.emp_name,
+       e.addr.street AS street,
+       e.addr.city   AS city,
+       e.addr.state  AS state
+FROM employee e;
