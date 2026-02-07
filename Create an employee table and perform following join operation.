@@ -1,0 +1,69 @@
+CREATE TABLE employee_info (
+  emp_id NUMBER(5),
+  emp_name VARCHAR2(20),
+  manager_id NUMBER(5),
+  joining_date DATE
+);
+
+INSERT INTO employee_info VALUES (101, 'Anitha', NULL, DATE '2023-01-10');
+INSERT INTO employee_info VALUES (102, 'Bharathi', 101, DATE '2023-03-15');
+INSERT INTO employee_info VALUES (103, 'Chandru', 101, DATE '2023-05-20');
+INSERT INTO employee_info VALUES (104, 'Deepak', 102, DATE '2023-07-25');
+
+CREATE TABLE department_info (
+  emp_id NUMBER(5),
+  department VARCHAR2(20),
+  location VARCHAR2(20)
+);
+
+INSERT INTO department_info VALUES (101, 'HR', 'Chennai');
+INSERT INTO department_info VALUES (102, 'Finance', 'Bangalore');
+INSERT INTO department_info VALUES (105, 'IT', 'Hyderabad');
+
+a) SELF JOIN
+SELECT e.emp_id,
+       e.emp_name AS employee,
+       m.emp_name AS manager
+FROM employee_info e
+JOIN employee_info m
+ON e.manager_id = m.emp_id;
+
+b) INNER JOIN
+SELECT e.emp_id,
+       e.emp_name,
+       e.joining_date,
+       d.department,
+       d.location
+FROM employee_info e
+INNER JOIN department_info d
+ON e.emp_id = d.emp_id;
+
+c) LEFT JOIN
+SELECT e.emp_id,
+       e.emp_name,
+       e.joining_date,
+       d.department,
+       d.location
+FROM employee_info e
+LEFT JOIN department_info d
+ON e.emp_id = d.emp_id;
+
+d) RIGHT JOIN
+SELECT e.emp_id,
+       e.emp_name,
+       e.joining_date,
+       d.department,
+       d.location
+FROM employee_info e
+RIGHT JOIN department_info d
+ON e.emp_id = d.emp_id;
+
+e) FULL OUTER JOIN
+SELECT e.emp_id,
+       e.emp_name,
+       e.joining_date,
+       d.department,
+       d.location
+FROM employee_info e
+FULL OUTER JOIN department_info d
+ON e.emp_id = d.emp_id;
