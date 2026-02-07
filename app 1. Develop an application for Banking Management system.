@@ -1,0 +1,138 @@
+import tkinter as tk
+from tkinter import messagebox
+
+accounts = {}
+
+def create_account():
+    acc_no = acc_entry.get()
+    name = name_entry.get()
+    balance = bal_entry.get()
+
+    if acc_no and name and balance:
+        accounts[acc_no] = {
+            "name": name,
+            "balance": float(balance),
+            "last_old": float(balance),
+            "last_amount": 0.0
+        }
+        messagebox.showinfo(
+            "Account Created",
+            f"Account No: {acc_no}\nName: {name}\nBalance: {balance}"
+        )
+        clear_all()
+    else:
+        messagebox.showerror("Error", "Fill all fields")
+
+def show_amount_box(action):
+    amount_label.config(text=f"Enter Amount to {action}")
+    amount_frame.pack(pady=5)
+    submit_btn.config(command=lambda: process_amount(action))
+
+def process_amount(action):
+    acc_no = acc_entry.get()
+    amount = amount_entry.get()
+
+    if acc_no not in accounts:
+        messagebox.showerror("Error", "Account not found")
+        return
+
+    if not amount:
+        messagebox.showerror("Error", "Enter amount")
+        return
+
+    amount = float(amount)
+    acc = accounts[acc_no]
+    acc["last_old"] = acc["balance"]
+
+    if action == "Deposit":
+        acc["balance"] += amount
+        acc["last_amount"] = amount
+        messagebox.showinfo(
+            "Deposit Successful",
+            f"Old Balance: {acc['last_old']}\n"
+            f"Deposited Amount: {amount}\n"
+            f"New Balance: {acc['balance']}"
+        )
+
+    elif action == "Withdraw":
+        if acc["balance"] >= amount:
+            acc["balance"] -= amount
+            acc["last_amount"] = amount
+            messagebox.showinfo(
+                "Withdrawal Successful",
+                f"Old Balance: {acc['last_old']}\n"
+                f"Withdrawn Amount: {amount}\n"
+                f"New Balance: {acc['balance']}"
+            )
+        else:
+            messagebox.showerror(
+                "Error",
+                f"Insufficient Balance\nCurrent Balance: {acc['balance']}"
+            )
+            return
+
+    amount_entry.delete(0, tk.END)
+    amount_frame.pack_forget()
+
+def view_account():
+    acc_no = acc_entry.get()
+    if acc_no in accounts:
+        acc = accounts[acc_no]
+        messagebox.showinfo(
+            "Bank Management System",
+            "BANK MANAGEMENT SYSTEM\n"
+            "----------------------\n\n"
+            f"Name: {acc['name']}\n\n"
+            f"Old Balance: {acc['last_old']}\n"
+            f"Last Transaction Amount: {acc['last_amount']}\n"
+            f"New Balance: {acc['balance']}\n"
+            f"Total Balance: {acc['balance']}"
+        )
+    else:
+        messagebox.showerror(
+            "Bank Management System",
+            "Account not found"
+        )
+
+
+def clear_all():
+    acc_entry.delete(0, tk.END)
+    name_entry.delete(0, tk.END)
+    bal_entry.delete(0, tk.END)
+    amount_entry.delete(0, tk.END)
+    amount_frame.pack_forget()
+
+# ---------------- GUI ---------------- #
+
+root = tk.Tk()
+root.title("Banking Management System")
+root.geometry("420x520")
+
+tk.Label(root, text="Account Number").pack()
+acc_entry = tk.Entry(root)
+acc_entry.pack()
+
+tk.Label(root, text="Name").pack()
+name_entry = tk.Entry(root)
+name_entry.pack()
+
+tk.Label(root, text="Initial Balance").pack()
+bal_entry = tk.Entry(root)
+bal_entry.pack()
+
+tk.Button(root, text="Create Account", command=create_account).pack(pady=5)
+tk.Button(root, text="View Account", command=view_account).pack(pady=5)
+
+# Amount frame (hidden initially)
+amount_frame = tk.Frame(root)
+amount_label = tk.Label(amount_frame, text="")
+amount_label.pack()
+amount_entry = tk.Entry(amount_frame)
+amount_entry.pack()
+submit_btn = tk.Button(amount_frame, text="Submit")
+submit_btn.pack(pady=5)
+
+tk.Button(root, text="Deposit", command=lambda: show_amount_box("Deposit")).pack(pady=5)
+tk.Button(root, text="Withdraw", command=lambda: show_amount_box("Withdraw")).pack(pady=5)
+
+root.mainloop()
