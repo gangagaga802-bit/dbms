@@ -1,0 +1,62 @@
+// Create capped collection
+db.createCollection("students", {
+  capped: true,
+  size: 1024,
+  max: 50
+});
+
+// Insert documents
+db.students.insertOne({ id: 1, name: "mughila", course: "cs", percentage: 85 });
+db.students.insertOne({ id: 2, name: "gowrisankar", course: "cs", percentage: 80 });
+db.students.insertOne({ id: 3, name: "lakshmi", course: "cs", percentage: 88 });
+db.students.insertOne({ id: 4, name: "sengottuvel", course: "cs", percentage: 90 });
+db.students.insertOne({ id: 5, name: "kavya", course: "cs", percentage: 80 });
+db.students.insertOne({ id: 6, name: "kamal", course: "cs", percentage: 82 });
+
+// Display all students
+db.students.find();
+
+// Students with percentage greater than 50
+db.students.find({ percentage: { $gt: 50 } });
+
+// Create capped collection
+db.createCollection("students2", {
+  capped: true,
+  size: 1024,
+  max: 50
+});
+
+// Insert documents
+db.students2.insertOne({ id: 1, age: "23", gender: "female", address: "coimbatore" });
+db.students2.insertOne({ id: 2, age: "23", gender: "male", address: "Tiruchengode" });
+db.students2.insertOne({ id: 3, age: "24", gender: "female", address: "karur" });
+db.students2.insertOne({ id: 4, age: "21", gender: "male", address: "dindigul" });
+db.students2.insertOne({ id: 5, age: "21", gender: "female", address: "namakkal" });
+db.students2.insertOne({ id: 6, age: "22", gender: "male", address: "trichy" });
+
+// Display all documents
+db.students2.find();
+
+// Find students from Coimbatore
+db.students2.find({ address: "coimbatore" });
+
+// Find male students from Trichy
+db.students2.find({ address: "trichy", gender: "male" });
+
+// Create capped collection
+db.createCollection("students3", {
+  capped: true,
+  size: 1024,
+  max: 50
+});
+
+// Insert documents
+db.students3.insertOne({ id: 1, name: "anu", course: "bsc", percentage: 55 });
+db.students3.insertOne({ id: 2, name: "sri", course: "bsc", percentage: 65 });
+db.students3.insertOne({ id: 3, name: "nivetha", course: "mba", percentage: 75 });
+db.students3.insertOne({ id: 4, name: "divya", course: "msc", percentage: 77 });
+
+// Sort by percentage (descending)
+db.students3.find({ course: "bsc" }).sort({ percentage: -1 });
+db.students3.find({ course: "mba" }).sort({ percentage: -1 });
+db.students3.find({ course: "msc" }).sort({ percentage: -1 });
