@@ -1,0 +1,30 @@
+1) Create EMP1 table
+CREATE TABLE emp1 (
+  empno NUMBER,
+  dept VARCHAR2(20),
+  salary NUMBER
+);
+
+INSERT INTO emp1 VALUES (1, 'HR', 40000);
+INSERT INTO emp1 VALUES (2, 'IT', 50000);
+INSERT INTO emp1 VALUES (3, 'Manager', 55000);
+
+SELECT * FROM emp1;
+
+2) Create EMP2 using PARALLEL query (CTAS)
+CREATE TABLE emp2
+PARALLEL
+AS
+SELECT /*+ PARALLEL(emp1, 4) */ *
+FROM emp1;
+
+INSERT INTO emp2 VALUES (4, 'CS', 43643);
+
+SELECT * FROM emp2;
+
+3) Alter EMP1 table (add new column)
+ALTER TABLE emp1 ADD age NUMBER;
+
+INSERT INTO emp1 VALUES (5, 'Finance', 38000, 24);
+
+SELECT * FROM emp1;
