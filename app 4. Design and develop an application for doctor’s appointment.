@@ -1,0 +1,224 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+from datetime import datetime, date
+
+class Patient:
+    def __init__(self, name, age, phone, gender="Not specified"):
+        self.name = name.strip()
+        self.age = age
+        self.phone = phone.strip()
+        self.gender = gender.strip()
+        self.registered_date = date.today()
+
+class Appointment:
+    def __init__(self, patient_name, date_time):
+        self.patient_name = patient_name.strip()
+        self.date_time = date_time
+
+class DoctorAppointmentApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Dr. Clinic Appointment System")
+        self.root.geometry("950x620")
+
+        # Doctor information (hardcoded for demo)
+        self.doctor_name = "Dr. Boopathi Ellayappan"
+        self.doctor_availability = "Monday–Friday: 9:00 AM – 5:00 PM\nSaturday: 9:00 AM – 1:00 PM\nSunday: Closed"
+
+        # Data storage
+        self.patients = []          # list of Patient objects
+        self.appointments = []      # list of Appointment objects
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        # ── Header ───────────────────────────────────────────────────
+        header = ttk.Label(self.root, text=f"Welcome to {self.doctor_name}'s Clinic", font=("Helvetica", 16, "bold"))
+        header.pack(pady=10)
+
+        ttk.Label(self.root, text=f"Availability: {self.doctor_availability}", font=("Helvetica", 10), foreground="#555").pack(pady=(0, 10))
+
+        # ── Notebook (Tabs) ───────────────────────────────────────────
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(padx=15, pady=10, fill="both", expand=True)
+
+        # Tab 1: Appointments
+        tab_appoint = ttk.Frame(notebook)
+        notebook.add(tab_appoint, text="Appointments")
+
+        # Tab 2: Patient List
+        tab_patients = ttk.Frame(notebook)
+        notebook.add(tab_patients, text="Patient List")
+
+        # Tab 3: Add New Patient
+        tab_add_patient = ttk.Frame(notebook)
+        notebook.add(tab_add_patient, text="Add New Patient")
+
+        self.setup_appointments_tab(tab_appoint)
+        self.setup_patient_list_tab(tab_patients)
+        self.setup_add_patient_tab(tab_add_patient)
+
+        # Initial refresh
+        self.refresh_appointment_list()
+
+    def setup_appointments_tab(self, tab):
+        frame = ttk.LabelFrame(tab, text=" Book New Appointment ", padding=12)
+        frame.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(frame, text="Patient Name:").grid(row=0, column=0, padx=8, pady=8, sticky="e")
+        self.app_patient_entry = ttk.Entry(frame, width=35)
+        self.app_patient_entry.grid(row=0, column=1, pady=8)
+
+        ttk.Label(frame, text="Date & Time (YYYY-MM-DD HH:MM):").grid(row=1, column=0, padx=8, pady=8, sticky="e")
+        self.app_datetime_entry = ttk.Entry(frame, width=35)
+        self.app_datetime_entry.grid(row=1, column=1, pady=8)
+
+        ttk.Button(frame, text="Book Appointment", command=self.book_appointment).grid(row=2, column=0, columnspan=2, pady=12)
+
+        # Appointment List
+        list_frame = ttk.LabelFrame(tab, text=f"Appointments ({datetime.now().strftime('%d-%m-%Y')})", padding=10)
+        list_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        columns = ("Patient", "DateTime")
+        self.app_tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=12)
+        self.app_tree.heading("Patient", text="Patient Name")
+        self.app_tree.heading("DateTime", text="Date & Time")
+
+        self.app_tree.column("Patient", width=280)
+        self.app_tree.column("DateTime", width=220, anchor="center")
+
+        self.app_tree.pack(fill="both", expand=True)
+
+        # Buttons
+        btn_frame = ttk.Frame(list_frame)
+        btn_frame.pack(fill="x", pady=8)
+
+        ttk.Button(btn_frame, text="Cancel Selected", command=self.cancel_appointment).pack(side="left", padx=6)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh_appointment_list).pack(side="right", padx=6)
+
+    def setup_patient_list_tab(self, tab):
+        list_frame = ttk.LabelFrame(tab, text="Registered Patients", padding=10)
+        list_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        columns = ("Name", "Age", "Phone", "Gender", "Registered")
+        self.patient_tree = ttk.Treeview(list_frame, columns=columns, show="headings", height=18)
+
+        self.patient_tree.heading("Name", text="Name")
+        self.patient_tree.heading("Age", text="Age")
+        self.patient_tree.heading("Phone", text="Phone")
+        self.patient_tree.heading("Gender", text="Gender")
+        self.patient_tree.heading("Registered", text="Registered On")
+
+        self.patient_tree.column("Name", width=220)
+        self.patient_tree.column("Age", width=60, anchor="center")
+        self.patient_tree.column("Phone", width=140)
+        self.patient_tree.column("Gender", width=100)
+        self.patient_tree.column("Registered", width=140, anchor="center")
+
+        self.patient_tree.pack(fill="both", expand=True, pady=5)
+
+        ttk.Button(list_frame, text="Refresh Patient List", command=self.refresh_patient_list).pack(pady=8)
+
+    def setup_add_patient_tab(self, tab):
+        frame = ttk.LabelFrame(tab, text=" Register New Patient ", padding=15)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        labels = ["Full Name *", "Age *", "Phone Number *", "Gender"]
+        self.patient_entries = {}
+
+        for i, label_text in enumerate(labels):
+            ttk.Label(frame, text=label_text).grid(row=i, column=0, padx=10, pady=10, sticky="e")
+            entry = ttk.Entry(frame, width=40)
+            entry.grid(row=i, column=1, padx=10, pady=10, sticky="w")
+            self.patient_entries[label_text] = entry
+
+        ttk.Button(frame, text="Register Patient", command=self.add_new_patient).grid(row=len(labels), column=0, columnspan=2, pady=20)
+
+    # ── Functionality ────────────────────────────────────────────────
+    def add_new_patient(self):
+        try:
+            name = self.patient_entries["Full Name *"].get().strip()
+            age_str = self.patient_entries["Age *"].get().strip()
+            phone = self.patient_entries["Phone Number *"].get().strip()
+            gender = self.patient_entries["Gender"].get().strip() or "Not specified"
+
+            if not name or not age_str or not phone:
+                messagebox.showwarning("Required", "Name, Age, and Phone are required")
+                return
+
+            age = int(age_str)
+            if age < 0 or age > 120:
+                raise ValueError("Invalid age")
+
+            self.patients.append(Patient(name, age, phone, gender))
+            messagebox.showinfo("Success", f"Patient {name} registered successfully")
+            self.refresh_patient_list()
+
+            # Clear fields
+            for e in self.patient_entries.values():
+                e.delete(0, tk.END)
+
+        except ValueError as e:
+            messagebox.showerror("Input Error", str(e) or "Age must be a number")
+
+    def book_appointment(self):
+        patient_name = self.app_patient_entry.get().strip()
+        dt_str = self.app_datetime_entry.get().strip()
+
+        if not patient_name or not dt_str:
+            messagebox.showwarning("Required", "Patient name and date/time required")
+            return
+
+        try:
+            dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+            self.appointments.append(Appointment(patient_name, dt))
+            messagebox.showinfo("Booked", f"Appointment booked for {patient_name} at {dt_str}")
+            self.refresh_appointment_list()
+
+            self.app_patient_entry.delete(0, tk.END)
+            self.app_datetime_entry.delete(0, tk.END)
+
+        except ValueError:
+            messagebox.showerror("Format Error", "Use format: YYYY-MM-DD HH:MM")
+
+    def cancel_appointment(self):
+        selected = self.app_tree.selection()
+        if not selected:
+            messagebox.showwarning("Selection", "Select an appointment to cancel")
+            return
+
+        values = self.app_tree.item(selected)["values"]
+        patient = values[0]
+        dt_str = values[1]
+
+        if messagebox.askyesno("Confirm", f"Cancel appointment for {patient} at {dt_str}?"):
+            self.appointments = [a for a in self.appointments if not (a.patient_name == patient and a.date_time.strftime("%Y-%m-%d %H:%M") == dt_str)]
+            self.refresh_appointment_list()
+
+    def refresh_appointment_list(self):
+        self.app_tree.delete(*self.app_tree.get_children())
+        today = date.today()
+
+        for app in sorted(self.appointments, key=lambda x: x.date_time):
+            dt = app.date_time
+            if dt.date() >= today:
+                self.app_tree.insert("", "end", values=(
+                    app.patient_name,
+                    dt.strftime("%Y-%m-%d %I:%M %p")
+                ))
+
+    def refresh_patient_list(self):
+        self.patient_tree.delete(*self.patient_tree.get_children())
+        for p in sorted(self.patients, key=lambda x: x.name):
+            self.patient_tree.insert("", "end", values=(
+                p.name,
+                p.age,
+                p.phone,
+                p.gender,
+                p.registered_date.strftime("%Y-%m-%d")
+            ))
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = DoctorAppointmentApp(root)
+    root.mainloop()
