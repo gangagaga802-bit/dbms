@@ -1,0 +1,266 @@
+import tkinter as tk
+from tkinter import ttk, messagebox, simpledialog, Toplevel, scrolledtext
+from datetime import datetime
+
+class InventoryItem:
+    def __init__(self, name, quantity, price):
+        self.name = name.lower()
+        self.quantity = quantity
+        self.price = price
+
+class CartItem:
+    def __init__(self, item, qty):
+        self.item = item
+        self.qty = qty
+        self.subtotal = qty * item.price
+
+class SupermarketApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Super Market - Billing & Cart")
+        self.root.geometry("820x680")
+
+        # Default 20 items (you can still modify stock via code if needed)
+        default_items = [
+            ("Rice", 150, 52.50), ("Wheat Flour", 120, 48.00), ("Sugar", 200, 45.00),
+            ("Cooking Oil", 80, 185.00), ("Milk (1L)", 300, 68.00), ("Curd (500g)", 140, 55.00),
+            ("Toor Dal", 90, 145.00), ("Chana Dal", 110, 85.00), ("Tea Powder", 60, 320.00),
+            ("Coffee Powder", 45, 480.00), ("Salt", 250, 22.00), ("Soap (Bath)", 180, 38.00),
+            ("Toothpaste", 160, 95.00), ("Shampoo (400ml)", 70, 220.00), ("Detergent Powder", 95, 180.00),
+            ("Biscuits (Pack)", 220, 45.00), ("Noodles (Pack)", 180, 28.00),
+            ("Tomato", 90, 35.00), ("Onion", 140, 42.00), ("Potato", 200, 28.00),
+        ]
+
+        self.inventory = {name.lower(): InventoryItem(name, qty, price) for name, qty, price in default_items}
+        self.cart = []
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Title
+        ttk.Label(self.root, text=" BOOPATHI SUPER MARKET", font=("Helvetica", 18, "bold")).pack(pady=12)
+        ttk.Label(self.root, text="Billing Counter", font=("Helvetica", 12)).pack()
+
+        # ── Search & Add to Cart Section ────────────────────────────────
+        frame_buy = ttk.LabelFrame(self.root, text=" Find Product & Add to Cart ", padding=12)
+        frame_buy.pack(fill="x", padx=20, pady=10)
+
+        ttk.Label(frame_buy, text="Product name:").grid(row=0, column=0, padx=10, pady=10, sticky="e")
+        self.search_entry = ttk.Entry(frame_buy, width=35, font=("Helvetica", 11))
+        self.search_entry.grid(row=0, column=1, pady=10)
+
+        ttk.Button(frame_buy, text="Search & Add to Cart", command=self.search_and_add_to_cart).grid(
+            row=1, column=0, columnspan=2, pady=12, ipadx=10, ipady=5
+        )
+
+        # ── Cart Display ─────────────────────────────────────────────────
+        frame_cart = ttk.LabelFrame(self.root, text=" Your Shopping Cart ", padding=12)
+        frame_cart.pack(fill="both", expand=True, padx=20, pady=10)
+
+        columns = ("Item", "Qty", "Unit Price", "Subtotal", " ")
+        self.cart_tree = ttk.Treeview(frame_cart, columns=columns, show="headings", height=10)
+        self.cart_tree.heading("Item", text="Item")
+        self.cart_tree.heading("Qty", text="Qty")
+        self.cart_tree.heading("Unit Price", text="Unit Price ₹")
+        self.cart_tree.heading("Subtotal", text="Subtotal ₹")
+        self.cart_tree.heading(" ", text=" ")
+
+        self.cart_tree.column("Item", width=280)
+        self.cart_tree.column("Qty", width=70, anchor="center")
+        self.cart_tree.column("Unit Price", width=110, anchor="center")
+        self.cart_tree.column("Subtotal", width=130, anchor="center")
+        self.cart_tree.column(" ", width=90, anchor="center")
+
+        self.cart_tree.pack(fill="both", expand=True, pady=5)
+
+        self.total_label = ttk.Label(frame_cart, text="Grand Total: ₹ 0.00", font=("Helvetica", 13, "bold"))
+        self.total_label.pack(pady=10, anchor="e")
+
+        btn_frame = ttk.Frame(frame_cart)
+        btn_frame.pack(fill="x", pady=8)
+
+        ttk.Button(btn_frame, text="Clear Cart", command=self.clear_cart).pack(side="left", padx=10)
+        ttk.Button(btn_frame, text="Generate Bill → Checkout", command=self.show_bill).pack(side="right", padx=10)
+
+        # Bottom buttons
+        bottom_frame = ttk.Frame(self.root)
+        bottom_frame.pack(fill="x", pady=10)
+
+        ttk.Button(bottom_frame, text="View All Products", command=self.show_all_products).pack(side="left", padx=20)
+        ttk.Button(bottom_frame, text="Low Stock Alert (< 20 units)", command=self.show_low_stock).pack(side="right", padx=20)
+
+    def search_and_add_to_cart(self):
+        query = self.search_entry.get().strip().lower()
+        if not query:
+            messagebox.showwarning("Input required", "Please enter a product name")
+            return
+
+        matches = [item for key, item in self.inventory.items() if query in key]
+
+        if not matches:
+            messagebox.showinfo("Not found", f"No product found matching '{query}'")
+            return
+
+        # Take the first match (you can improve later to show list if multiple)
+        item = matches[0]
+
+        qty_str = simpledialog.askstring(
+            "Quantity",
+            f"Product: {item.name.title()}\n"
+            f"Available stock: {item.quantity} units\n"
+            f"Price per unit: ₹{item.price:.2f}\n\n"
+            f"How many would you like to buy?"
+        )
+
+        if qty_str is None:
+            return
+
+        try:
+            qty = int(qty_str)
+            if qty <= 0:
+                raise ValueError("Quantity must be positive")
+            if qty > item.quantity:
+                messagebox.showerror("Not enough stock", f"Only {item.quantity} units available!")
+                return
+
+            self.cart.append(CartItem(item, qty))
+            item.quantity -= qty
+            self.update_cart_display()
+
+            messagebox.showinfo("Added", f"Added {qty} × {item.name.title()} to cart")
+
+        except ValueError:
+            messagebox.showerror("Invalid input", "Please enter a valid positive number")
+
+        self.search_entry.delete(0, tk.END)
+
+    def update_cart_display(self):
+        for row in self.cart_tree.get_children():
+            self.cart_tree.delete(row)
+
+        grand_total = 0
+        for i, citem in enumerate(self.cart):
+            item = citem.item
+            sub = citem.subtotal
+            grand_total += sub
+
+            values = (
+                item.name.title(),
+                citem.qty,
+                f"{item.price:.2f}",
+                f"{sub:.2f}",
+                "Remove"
+            )
+            iid = self.cart_tree.insert("", "end", values=values, tags=(i,))
+            self.cart_tree.tag_bind(i, "<Button-1>", lambda e, idx=i: self.remove_from_cart(idx))
+
+        self.total_label.config(text=f"Grand Total: ₹ {grand_total:.2f}")
+
+    def remove_from_cart(self, index):
+        if 0 <= index < len(self.cart):
+            citem = self.cart.pop(index)
+            citem.item.quantity += citem.qty
+            self.update_cart_display()
+            messagebox.showinfo("Removed", f"Removed {citem.qty} × {citem.item.name.title()} from cart")
+
+    def clear_cart(self):
+        if not self.cart:
+            return
+        if messagebox.askyesno("Confirm", "Clear the entire cart?"):
+            for citem in self.cart:
+                citem.item.quantity += citem.qty
+            self.cart.clear()
+            self.update_cart_display()
+
+    def show_bill(self):
+        if not self.cart:
+            messagebox.showinfo("Cart is empty", "No items in cart to checkout")
+            return
+
+        bill_window = Toplevel(self.root)
+        bill_window.title("Your Bill - Pavithra Super Market")
+        bill_window.geometry("520x620")
+        bill_window.resizable(False, True)
+
+        # Header
+        ttk.Label(bill_window, text="PAVITHRA SUPER MARKET", font=("Helvetica", 16, "bold")).pack(pady=12)
+        ttk.Label(bill_window, text="Chennai, Tamil Nadu", font=("Helvetica", 10)).pack()
+        now = datetime.now().strftime("%d-%m-%Y   %I:%M %p")
+        ttk.Label(bill_window, text=f"Bill Date: {now}", font=("Helvetica", 10)).pack(pady=6)
+
+        ttk.Separator(bill_window, orient="horizontal").pack(fill="x", padx=25, pady=12)
+
+        # Bill content
+        text_area = scrolledtext.ScrolledText(bill_window, wrap=tk.WORD, width=58, height=22, font=("Consolas", 11))
+        text_area.pack(padx=20, pady=10, fill="both", expand=True)
+
+        text_area.insert(tk.END, f"{'Item':<24} {'Qty':>5} {'Rate':>10} {'Amount':>12}\n")
+        text_area.insert(tk.END, "─" * 58 + "\n")
+
+        grand_total = 0
+        for citem in self.cart:
+            item = citem.item
+            text_area.insert(tk.END, f"{item.name.title():<24} {citem.qty:>5} {item.price:>10.2f} {citem.subtotal:>12.2f}\n")
+            grand_total += citem.subtotal
+
+        text_area.insert(tk.END, "─" * 58 + "\n")
+        text_area.insert(tk.END, f"{'TOTAL':<42} ₹ {grand_total:>10.2f}\n\n")
+        text_area.insert(tk.END, "Thank you for shopping with us!\n")
+        text_area.insert(tk.END, "Please visit again! 😊\n")
+
+        text_area.config(state='disabled')
+
+        # Buttons
+        btn_frame = ttk.Frame(bill_window)
+        btn_frame.pack(pady=15)
+
+        def close_and_clear():
+            self.cart.clear()
+            self.update_cart_display()
+            bill_window.destroy()
+
+        ttk.Button(btn_frame, text="Close & Clear Cart", command=close_and_clear, width=18).pack(side="left", padx=10)
+        ttk.Button(btn_frame, text="Close", command=bill_window.destroy, width=12).pack(side="right", padx=10)
+
+    def show_all_products(self):
+        win = Toplevel(self.root)
+        win.title("All Available Products")
+        win.geometry("580x580")
+
+        ttk.Label(win, text="Current Stock List", font=("Helvetica", 14, "bold")).pack(pady=12)
+
+        text = scrolledtext.ScrolledText(win, width=65, height=28, font=("Consolas", 11))
+        text.pack(padx=20, pady=10, fill="both", expand=True)
+
+        sorted_items = sorted(self.inventory.values(), key=lambda x: x.name)
+
+        text.insert(tk.END, f"{'Product Name':<28} {'Stock':>8} {'Price / unit':>14}\n")
+        text.insert(tk.END, "─" * 58 + "\n")
+
+        count = 0
+        for item in sorted_items:
+            if item.quantity > 0:
+                text.insert(tk.END, f"{item.name.title():<28} {item.quantity:>8} ₹{item.price:>12.2f}\n")
+                count += 1
+
+        if count == 0:
+            text.insert(tk.END, "\nNo products currently in stock.\n")
+
+        text.config(state='disabled')
+
+    def show_low_stock(self):
+        low = [item for item in self.inventory.values() if 0 < item.quantity < 20]
+        if not low:
+            messagebox.showinfo("Stock Status", "No items with low stock (< 20 units)")
+            return
+
+        msg = "Low stock items:\n\n" + "\n".join(
+            f"• {i.name.title():<20} : {i.quantity} units left  @ ₹{i.price:.2f}"
+            for i in sorted(low, key=lambda x: x.name)
+        )
+        messagebox.showwarning("Low Stock Alert", msg)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = SupermarketApp(root)
+    root.mainloop()
