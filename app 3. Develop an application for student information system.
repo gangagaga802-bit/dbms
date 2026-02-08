@@ -1,0 +1,254 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+class Student:
+    def __init__(self, name, class_name, marks):
+        self.name = name.strip()
+        self.class_name = class_name.strip()
+        self.marks = [float(m) for m in marks]          # 5 subjects
+        self.total = sum(self.marks)
+        self.average = self.total / 5
+        self.grade = self.calculate_grade()
+        self.status = self.calculate_status()
+        self.rank = None
+
+    def calculate_grade(self):
+        avg = self.average
+        if avg >= 90: return "A1"
+        elif avg >= 80: return "A2"
+        elif avg >= 70: return "B1"
+        elif avg >= 60: return "B2"
+        elif avg >= 50: return "C1"
+        elif avg >= 40: return "C2"
+        else: return "D"
+
+    def calculate_status(self):
+        if self.average < 35 or any(m < 30 for m in self.marks):
+            return "Fail"
+        return "Pass"
+
+    def to_display_tuple(self):
+        return (
+            self.name,
+            self.class_name,
+            f"{self.marks[0]:.1f}", f"{self.marks[1]:.1f}", f"{self.marks[2]:.1f}",
+            f"{self.marks[3]:.1f}", f"{self.marks[4]:.1f}",
+            f"{self.total:.1f}", f"{self.average:.2f}",
+            self.grade, self.status,
+            self.rank if self.rank is not None else "-"
+        )
+
+
+class StudentMarkSystem:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Student Marks & Ranking")
+        self.root.geometry("880x520")           # Smaller size
+        self.root.resizable(True, True)
+
+        self.students = []                      # list of Student objects
+
+        self.create_widgets()
+        self.apply_style()
+
+    def apply_style(self):
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure("Treeview.Heading", font=('Helvetica', 10, 'bold'))
+        style.configure("Treeview", font=('Helvetica', 9), rowheight=22)
+        style.map("Treeview", background=[('selected', '#cce5ff')])
+
+    def create_widgets(self):
+        ttk.Label(self.root, text="Student Marks Management", font=("Helvetica", 14, "bold")).pack(pady=8)
+
+        # ── Form (left) ───────────────────────────────────────────
+        form_frame = ttk.LabelFrame(self.root, text=" Student Info ", padding=10)
+        form_frame.pack(side=tk.LEFT, padx=10, pady=8, fill=tk.Y)
+
+        labels = ["Name *", "Class *", "Tamil", "English", "Maths", "Science", "Social"]
+        self.entries = {}
+
+        for i, txt in enumerate(labels):
+            ttk.Label(form_frame, text=txt).grid(row=i, column=0, padx=5, pady=5, sticky="e")
+            e = ttk.Entry(form_frame, width=24)
+            e.grid(row=i, column=1, padx=5, pady=5, sticky="w")
+            self.entries[txt] = e
+
+        btn_frame = ttk.Frame(form_frame)
+        btn_frame.grid(row=len(labels), column=0, columnspan=2, pady=12)
+
+        ttk.Button(btn_frame, text="Add", command=self.add_student, width=10).grid(row=0, column=0, padx=4)
+        ttk.Button(btn_frame, text="Update", command=self.update_student, width=10).grid(row=0, column=1, padx=4)
+        ttk.Button(btn_frame, text="Clear", command=self.clear_form, width=10).grid(row=1, column=0, columnspan=2, pady=6)
+
+        # ── Table + Controls (right) ──────────────────────────────
+        right_frame = ttk.Frame(self.root)
+        right_frame.pack(side=tk.RIGHT, padx=10, pady=8, fill=tk.BOTH, expand=True)
+
+        # Search
+        search_frame = ttk.Frame(right_frame)
+        search_frame.pack(fill="x", pady=(0,6))
+
+        ttk.Label(search_frame, text="Name or class:").pack(side=tk.LEFT, padx=4)
+        self.search_entry = ttk.Entry(search_frame, width=28)
+        self.search_entry.pack(side=tk.LEFT, padx=4)
+
+        ttk.Button(search_frame, text="Search", command=self.search_students, width=8).pack(side=tk.LEFT, padx=4)
+        ttk.Button(search_frame, text="Show All", command=self.show_all_and_rank, width=8).pack(side=tk.LEFT, padx=4)
+
+        # Treeview - compact
+        columns = ("Name", "Class", "Tam", "Eng", "Mat", "Sci", "Soc", "Total", "Avg", "Grade", "Status", "Rank")
+        self.tree = ttk.Treeview(right_frame, columns=columns, show="headings", height=12)
+
+        headings = ["Name", "Class", "Tamil", "English", "Maths", "Science", "Social", "Total", "Avg %", "Grade", "Result", "Rank"]
+        widths   = [140, 75, 50, 50, 50, 50, 60, 65, 70, 60, 70, 45]
+
+        for col, hdr, w in zip(columns, headings, widths):
+            self.tree.heading(col, text=hdr)
+            self.tree.column(col, width=w, anchor="center" if col != "Name" else "w")
+
+        self.tree.pack(fill=tk.BOTH, expand=True, pady=4)
+        self.tree.bind("<<TreeviewSelect>>", self.on_select)
+
+        # Bottom buttons
+        bottom_frame = ttk.Frame(right_frame)
+        bottom_frame.pack(fill="x", pady=6)
+
+        ttk.Button(bottom_frame, text="Delete Selected", command=self.delete_student).pack(side=tk.LEFT, padx=6)
+        ttk.Button(bottom_frame, text="Delete All Students", command=self.delete_all).pack(side=tk.RIGHT, padx=6)
+
+    def get_form_data(self):
+        try:
+            name = self.entries["Name *"].get().strip()
+            cls  = self.entries["Class *"].get().strip()
+            if not name or not cls:
+                messagebox.showwarning("Required", "Name and Class are required!")
+                return None
+
+            marks = []
+            for sub in ["Tamil", "English", "Maths", "Science", "Social"]:
+                val = self.entries[sub].get().strip()
+                m = float(val) if val else 0.0
+                if not 0 <= m <= 100:
+                    messagebox.showerror("Invalid", f"{sub} must be 0–100")
+                    return None
+                marks.append(m)
+
+            return name, cls, marks
+        except ValueError:
+            messagebox.showerror("Error", "Marks must be numbers")
+            return None
+
+    def add_student(self):
+        data = self.get_form_data()
+        if not data: return
+        name, cls, marks = data
+
+        # Simple duplicate check
+        if any(s.name == name and s.class_name == cls for s in self.students):
+            messagebox.showwarning("Duplicate", "Student with same name & class already exists")
+            return
+
+        self.students.append(Student(name, cls, marks))
+        self.show_all_and_rank()
+        self.clear_form()
+        messagebox.showinfo("Added", f"{name} added")
+
+    def update_student(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Select", "Select student to update")
+            return
+
+        idx = self.tree.index(sel[0])
+        data = self.get_form_data()
+        if not data: return
+
+        name, cls, marks = data
+        self.students[idx] = Student(name, cls, marks)
+        self.show_all_and_rank()
+        self.clear_form()
+        messagebox.showinfo("Updated", "Record updated")
+
+    def delete_student(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Select", "Select student to delete")
+            return
+
+        name = self.tree.item(sel[0])["values"][0]
+        if messagebox.askyesno("Delete", f"Delete {name}'s marks?"):
+            idx = self.tree.index(sel[0])
+            del self.students[idx]
+            self.show_all_and_rank()
+            self.clear_form()
+
+    def delete_all(self):
+        if not self.students:
+            return
+        if messagebox.askyesno("Warning", "Delete ALL student records?"):
+            if messagebox.askyesno("Confirm", "Are you really sure? This cannot be undone."):
+                self.students.clear()
+                self.show_all_and_rank()
+                messagebox.showinfo("Cleared", "All records deleted")
+
+    def search_students(self):
+        q = self.search_entry.get().strip().lower()
+        if not q:
+            self.show_all_and_rank()
+            return
+
+        self.tree.delete(*self.tree.get_children())
+        count = 0
+        for s in self.students:
+            if q in s.name.lower() or q in s.class_name.lower():
+                self.tree.insert("", "end", values=s.to_display_tuple())
+                count += 1
+        if count == 0:
+            messagebox.showinfo("Not found", f"No match for '{q}'")
+
+    def show_all_and_rank(self):
+        # Reset ranks
+        for s in self.students:
+            s.rank = None
+
+        # Sort by average descending to assign ranks
+        sorted_list = sorted(self.students, key=lambda s: s.average, reverse=True)
+        rank = 1
+        prev_avg = None
+        for i, s in enumerate(sorted_list):
+            if prev_avg is not None and s.average == prev_avg:
+                s.rank = rank
+            else:
+                rank = i + 1
+                s.rank = rank
+            prev_avg = s.average
+
+        # Display sorted by class → name
+        self.tree.delete(*self.tree.get_children())
+        for s in sorted(self.students, key=lambda x: (x.class_name, x.name)):
+            self.tree.insert("", "end", values=s.to_display_tuple())
+
+    def on_select(self, event):
+        sel = self.tree.selection()
+        if not sel: return
+
+        vals = self.tree.item(sel[0])["values"]
+        self.clear_form()
+
+        self.entries["Name *"].insert(0, vals[0])
+        self.entries["Class *"].insert(0, vals[1])
+        self.entries["Tamil"].insert(0, vals[2])
+        self.entries["English"].insert(0, vals[3])
+        self.entries["Maths"].insert(0, vals[4])
+        self.entries["Science"].insert(0, vals[5])
+        self.entries["Social"].insert(0, vals[6])
+
+    def clear_form(self):
+        for e in self.entries.values():
+            e.delete(0, tk.END)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = StudentMarkSystem(root)
+    root.mainloop()
