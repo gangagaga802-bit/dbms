@@ -1,0 +1,34 @@
+use studentDB1
+
+db.createCollection("students")
+
+db.students.insertOne({id:1, name:"Alice", course:"CS", percentage:85})
+
+db.students.insertOne({id:2, name:"Bob", course:"IT", percentage:90})
+
+db.students.insertOne({id:3, name:"Charlie", course:"CS", percentage:78})
+
+db.students.insertOne({id:4, name:"David", course:"IT", percentage:88})
+
+db.students.insertOne({id:5, name:"Eve", course:"CS", percentage:92})
+
+db.students.find()
+
+show dbs
+
+https://www.mongodb.com/try/download/database-tools/releases/archive
+windows x64>> download packages>>extract download file
+
+"C:\Program Files\MongoDB\Tools\100\bin" >>open cmd
+mongodump --db studentDB1 --out "C:\Users\IMSCCS39\Desktop\mongoBackup"
+
+Open Mongosh
+use studentDB1
+db.dropDatabase()
+
+"C:\Program Files\MongoDB\Tools\100\bin">>open new cmd
+mongorestore --drop --db studentDB1 "C:\Users\IMSCCS39\Desktop\mongoBackup\studentDB1"
+
+Open mongosh
+show collections
+db.students.find().pretty()
