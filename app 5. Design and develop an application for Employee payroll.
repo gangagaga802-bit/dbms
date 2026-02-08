@@ -1,0 +1,238 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+class Employee:
+    def __init__(self, emp_id, name, department, salary):
+        self.emp_id = emp_id.strip().upper()
+        self.name = name.strip()
+        self.department = department.strip()
+        self.salary = float(salary)
+
+class EmployeeManagementApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Employee Management System")
+        self.root.geometry("980x580")
+
+        # Data storage
+        self.employees = {}           # emp_id → Employee
+        self.next_id_number = 1       # for auto-generation
+
+        self.create_widgets()
+        self.load_initial_next_id()
+
+    def load_initial_next_id(self):
+        """Find the highest existing number to continue from"""
+        if not self.employees:
+            return
+        max_num = 0
+        for eid in self.employees.keys():
+            if eid.startswith("EMP"):
+                try:
+                    num = int(eid[3:])
+                    if num > max_num:
+                        max_num = num
+                except:
+                    pass
+        self.next_id_number = max_num + 1
+
+    def generate_employee_id(self):
+        """Generate next available ID like EMP0001, EMP0002, ..."""
+        eid = f"EMP{self.next_id_number:04d}"
+        self.next_id_number += 1
+        return eid
+
+    def create_widgets(self):
+        ttk.Label(self.root, text="Employee Management", font=("Helvetica", 15, "bold")).pack(pady=10)
+
+        # ── Form (left side) ────────────────────────────────────────
+        form_frame = ttk.LabelFrame(self.root, text=" Employee Details ", padding=12)
+        form_frame.pack(side=tk.LEFT, padx=15, pady=10, fill=tk.Y)
+
+        labels = ["Employee ID", "Full Name *", "Department *", "Monthly Salary (₹) *"]
+        self.entries = {}
+
+        for i, label in enumerate(labels):
+            ttk.Label(form_frame, text=label).grid(row=i, column=0, padx=10, pady=8, sticky="e")
+            entry = ttk.Entry(form_frame, width=30)
+            entry.grid(row=i, column=1, padx=10, pady=8, sticky="w")
+            self.entries[label] = entry
+
+        # Make Employee ID read-only
+        self.entries["Employee ID"].config(state="disabled")
+
+        btn_frame = ttk.Frame(form_frame)
+        btn_frame.grid(row=len(labels), column=0, columnspan=2, pady=15)
+
+        ttk.Button(btn_frame, text="Add New Employee", command=self.add_employee).grid(row=0, column=0, padx=6)
+        ttk.Button(btn_frame, text="Update Selected", command=self.update_employee).grid(row=0, column=1, padx=6)
+        ttk.Button(btn_frame, text="Clear Form", command=self.clear_form).grid(row=1, column=0, columnspan=2, pady=8)
+
+        # ── List + Search (right side) ──────────────────────────────
+        right_frame = ttk.Frame(self.root)
+        right_frame.pack(side=tk.RIGHT, padx=15, pady=10, fill=tk.BOTH, expand=True)
+
+        # Search bar
+        search_frame = ttk.LabelFrame(right_frame, text=" Search ", padding=10)
+        search_frame.pack(fill="x", pady=(0,10))
+
+        ttk.Label(search_frame, text="Name or ID:").grid(row=0, column=0, padx=8, pady=6)
+        self.search_entry = ttk.Entry(search_frame, width=30)
+        self.search_entry.grid(row=0, column=1, padx=8)
+
+        ttk.Button(search_frame, text="Search", command=self.search_employees).grid(row=0, column=2, padx=8)
+        ttk.Button(search_frame, text="Show All", command=self.show_all).grid(row=0, column=3, padx=8)
+
+        # Employee table
+        columns = ("ID", "Name", "Department", "Salary")
+        self.tree = ttk.Treeview(right_frame, columns=columns, show="headings", height=15)
+        self.tree.heading("ID", text="Employee ID")
+        self.tree.heading("Name", text="Name")
+        self.tree.heading("Department", text="Department")
+        self.tree.heading("Salary", text="Salary ₹")
+
+        self.tree.column("ID", width=110, anchor="center")
+        self.tree.column("Name", width=220)
+        self.tree.column("Department", width=160)
+        self.tree.column("Salary", width=130, anchor="e")
+
+        self.tree.pack(fill=tk.BOTH, expand=True, pady=5)
+        self.tree.bind("<<TreeviewSelect>>", self.on_row_select)
+
+        # Action buttons
+        action_frame = ttk.Frame(right_frame)
+        action_frame.pack(fill="x", pady=10)
+
+        ttk.Button(action_frame, text="Delete Selected", command=self.delete_employee).pack(side=tk.LEFT, padx=8)
+        ttk.Button(action_frame, text="Refresh List", command=self.show_all).pack(side=tk.RIGHT, padx=8)
+
+        # Show initial list
+        self.show_all()
+
+    def add_employee(self):
+        name = self.entries["Full Name *"].get().strip()
+        dept = self.entries["Department *"].get().strip()
+        sal_str = self.entries["Monthly Salary (₹) *"].get().strip()
+
+        if not all([name, dept, sal_str]):
+            messagebox.showwarning("Required", "Name, Department and Salary are required")
+            return
+
+        try:
+            salary = float(sal_str)
+            if salary <= 0:
+                raise ValueError
+        except:
+            messagebox.showerror("Invalid", "Salary must be a positive number")
+            return
+
+        # Auto-generate ID
+        emp_id = self.generate_employee_id()
+
+        if emp_id in self.employees:  # very unlikely, but safe check
+            messagebox.showerror("Error", "ID conflict - please restart the program")
+            return
+
+        self.employees[emp_id] = Employee(emp_id, name, dept, salary)
+        messagebox.showinfo("Success", f"Added: {name}\nID: {emp_id}")
+        self.show_all()
+        self.clear_form()
+
+    def update_employee(self):
+        emp_id = self.entries["Employee ID"].get().strip().upper()
+        if not emp_id or emp_id not in self.employees:
+            messagebox.showwarning("Not Found", "Select an employee first")
+            return
+
+        name = self.entries["Full Name *"].get().strip()
+        dept = self.entries["Department *"].get().strip()
+        sal_str = self.entries["Monthly Salary (₹) *"].get().strip()
+
+        if not all([name, dept, sal_str]):
+            messagebox.showwarning("Required", "All fields are required for update")
+            return
+
+        try:
+            salary = float(sal_str)
+            if salary <= 0:
+                raise ValueError
+        except:
+            messagebox.showerror("Invalid", "Salary must be positive number")
+            return
+
+        emp = self.employees[emp_id]
+        emp.name = name
+        emp.department = dept
+        emp.salary = salary
+
+        messagebox.showinfo("Updated", f"Employee {emp_id} updated")
+        self.show_all()
+        self.clear_form()
+
+    def delete_employee(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("No selection", "Select an employee to delete")
+            return
+
+        emp_id = self.tree.item(selected)["values"][0]
+        name = self.tree.item(selected)["values"][1]
+
+        if messagebox.askyesno("Confirm", f"Delete {name} ({emp_id})?"):
+            del self.employees[emp_id]
+            self.show_all()
+            self.clear_form()
+            messagebox.showinfo("Deleted", "Employee record removed")
+
+    def search_employees(self):
+        q = self.search_entry.get().strip().lower()
+        if not q:
+            self.show_all()
+            return
+
+        self.tree.delete(*self.tree.get_children())
+        found = 0
+        for eid, emp in self.employees.items():
+            if q in eid.lower() or q in emp.name.lower():
+                self.tree.insert("", "end", values=(
+                    eid, emp.name, emp.department, f"{emp.salary:,.2f}"
+                ))
+                found += 1
+
+        if found == 0:
+            messagebox.showinfo("Not found", f"No match for '{q}'")
+
+    def show_all(self):
+        self.tree.delete(*self.tree.get_children())
+        for eid in sorted(self.employees.keys()):
+            emp = self.employees[eid]
+            self.tree.insert("", "end", values=(
+                eid, emp.name, emp.department, f"{emp.salary:,.2f}"
+            ))
+
+    def on_row_select(self, event):
+        selected = self.tree.selection()
+        if not selected:
+            return
+
+        values = self.tree.item(selected)["values"]
+        self.clear_form()
+
+        self.entries["Employee ID"].delete(0, tk.END)
+        self.entries["Employee ID"].insert(0, values[0])
+        self.entries["Full Name *"].insert(0, values[1])
+        self.entries["Department *"].insert(0, values[2])
+        self.entries["Monthly Salary (₹) *"].insert(0, values[3])
+
+        # Keep ID read-only
+        self.entries["Employee ID"].config(state="disabled")
+
+    def clear_form(self):
+        for key, entry in self.entries.items():
+            entry.delete(0, tk.END)
+        self.entries["Employee ID"].config(state="disabled")  # always disabled
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = EmployeeManagementApp(root)
+    root.mainloop()
